@@ -1,0 +1,120 @@
+from fastapi import FastAPI, Response, status, HTTPException
+from fastapi.params import Body
+from pydantic import BaseModel
+from typing import Optional
+from random import randrange
+
+app=FastAPI()
+#array banako DB ma kaam garnu aagadi bujhna lai k raicha bhanera
+my_posts=[{"title":"title of post 1","content":"content of post 1","id":1},
+          {"title":"title of post 2","content":"content of post 2","id":2},
+          {"title":"title of post 3","content":"content of post 3","id":3}]
+#learning the schema validation
+
+#like for making a post you may want the title: str, content: str, boolean: post or save as draft or sth.
+#class banaune jasma saab DATA Validation Constraints huncha
+
+# class Post(BaseModel):  #extending the BaseModel class (inheritance)
+#     title:str
+#     content:str
+
+
+class Post(BaseModel):  #extending the BaseModel class (inheritance)
+    title:str
+    content:str
+    publised:bool=True  #default value is true
+    rating:Optional[int]=None #nahale pani huncha but nahale chai None huncha, tara halepachi int type kai hunuparcha
+
+
+#Remember class ma comma hunna JSON jasto ani retrieve garda ni : payload["title"] haina just payload.title
+class UpdatePost(BaseModel):
+    title:str
+    content:str
+    publised:bool=True  #default value is true
+    rating:Optional[int]=None
+
+
+@app.get("/")  #decorator to tell fastapi that this is a get request
+# this is the root endpoint
+#if it was @app.get("/login") then I shoud go to this in the URL to use this endponint to use the functions
+async def root():
+
+    return {"message": "Hello World!!"} #automatically convert to json by fastapi and sends back to user 
+
+
+@app.get("/posts")
+
+async def get_login():#name of the function does not matter really but it should be relevant 
+    return {"message": "Make Post Page"} #automatically convert to json by fastapi and sends back to user
+
+
+@app.post("/createposts")
+def create_posts(payload:dict=Body(...)):  #frontend bata data liyera ayo FULL BODY ani stored in dict format and saves in the payload variable, frontend bata kasto format ma ako cha?JSON right so yeta pani purai BODY ko data lai DICT ma rakheko
+    print(payload)  
+    return {"message":f"post is created"}
+
+@app.post("/create")
+def create_posts(payload:dict=Body(...)):  #frontend bata data liyera ayo FULL BODY ani stored in dict format and saves in the payload variable, frontend bata kasto format ma ako cha?JSON right so yeta pani purai BODY ko data lai DICT ma rakheko
+    print(payload)  
+    return {"message":f'tile is {payload["title"]} and content is {payload["content"]}'}
+#print is only used for debugging purpose not as backend logic
+#actually this data payload from the Body is saved in the DataBase kinaki pachi post herna maan lagyo bahne ni pawos
+
+
+@app.post("/create_posts",status_code=status.HTTP_201_CREATED)  #201 is created, kunai pani kura create garesi 201 hunuparcha
+def creating(new_post:Post):   #title hunai parcha ani str nai huna parcha natra OPTIONAL field halincha class mai
+    print(new_post)
+    print(new_post.rating)
+    new_post_dict=new_post.dict()
+    return {"data":f"{new_post.title} and {new_post.content} and:: {new_post.publised} and {new_post_dict}"}
+    
+@app.get("/get_posts/{id}")
+async def get(id:int):
+    return {"post_id":id}
+
+def find_a_post(id):
+    for post in my_posts:  #because each dictionary in the array of my_post is a POST
+        if post["id"]==id:
+            return post
+    return None
+
+@app.get("/posts/{id}")
+async def get_post(id:int,response:Response): #default the fastapi path parameter is string so validation haleko int nai halnu parcha bhanera
+    post=find_a_post(id)   #request ma ako id lai afno DB ko array ma bhako POSTS ko array sanga match garako
+    if not post:
+        #return {"error":"post not found"}
+       # response.status_code=status.HTTP_404_NOT_FOUND 
+       # return {"error":"post with {id} not found"} #404 is not found
+
+       #we can just use a one liner HTTPException raise
+       raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post not found with {id}")  #baas error message matra haina status code pani return garaunu parcha ni ta natra ERROR but 200 status jancha
+    return {"post_detail":post}
+
+#delete garna lai
+#find the post with the specific id using enumerate 
+#delete the post my my_posts.pop(id)
+
+def find_index(id):
+    for i,post in enumerate(my_posts):
+        if post["id"]==id:
+            return i
+    return None
+
+@app.delete("/posts/delete/{id}",status_code=status.HTTP_204_NO_CONTENT)
+def delete_post(id:int):
+    index=find_index(id)
+    if not index:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post not found with {id}")
+    else:
+        my_posts.pop(id)
+        return HTTPException(status_code=status.HTTP_204_NO_CONTENT) #dont sent any detail or content in 204 delete
+    
+@app.put("/posts/update/{id}")
+async def update_post(id:int,post:UpdatePost):   #yesma pani SCHEMA validation huncha SAME POST garda jastai ho so COPY PASTE ARKO class BANAYE ni huncha
+    index=find_index(id)
+    if not index:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post not found with {id}")
+    
+    post_dict=post.dict()  #dict ma convert gareko
+    my_posts.update(index,post_dict)  #update the post with the new data
+    return {"data":post_dict}
