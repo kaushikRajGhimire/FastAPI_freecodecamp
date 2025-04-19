@@ -3,6 +3,9 @@ from fastapi.params import Body
 from pydantic import BaseModel
 from typing import Optional
 from random import randrange
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import time
 
 app=FastAPI()
 #array banako DB ma kaam garnu aagadi bujhna lai k raicha bhanera
@@ -23,17 +26,40 @@ class Post(BaseModel):  #extending the BaseModel class (inheritance)
     title:str
     content:str
     publised:bool=True  #default value is true
-    rating:Optional[int]=None #nahale pani huncha but nahale chai None huncha, tara halepachi int type kai hunuparcha
+     #default value is true
+    #rating:Optional[int]=None #nahale pani huncha but nahale chai None huncha, tara halepachi int type kai hunuparcha
+#katai pani jasma error aauna sakcha like database connect nahuna sakcha tesma sadai try: bhitra lekhne hai
 
+
+while True:      #yedi database connect first mai bhayena or pw haru galat thio bhane jaba samma thik hunna garirakhna paryo ni ta aagadi jana bhayena k program just error message falera !!! 
+    try:
+        conn=psycopg2.connect(host="localhost",database="first_fastapi",user="postgres",password="yourpassword",cursor_factory=RealDictCursor) #cursor_factory=RealDictCursor le data lai dictionary ma convert garne kaam garcha
+        cursor=conn.cursor()
+        print("Database connection was successful")
+        break
+    except Exception as error:
+        print("Connection to database failed")
+        print("Error: ",error)
+        time.sleep(2)  #2 seconds wait garne ani feri try garne
 
 #Remember class ma comma hunna JSON jasto ani retrieve garda ni : payload["title"] haina just payload.title
 class UpdatePost(BaseModel):
     title:str
     content:str
     publised:bool=True  #default value is true
-    rating:Optional[int]=None
+    #rating:Optional[int]=None
+@app.get("/db_posts")
+async def get_posts():
+    cursor.execute("""SELECT * FROM posts""")
+    posts=cursor.fetchall()
+    return {"data":posts}  #returning the data in JSON format automatically by fastapi to the frontend as the answer to some request in some button 
 
-
+@app.post('/db_posts_post',status_code=status.HTTP_201_CREATED)
+async def create_posts(payload:Post):
+    cursor.execute("""INSERT INTO posts (title,content,publised) VALUES (%s,%s,%s) RETURNING *""",(payload.title,payload.content,payload.publised))
+    new_post=cursor.fetchone()   
+    conn.commit()  #commit the changes to the database TO SAVE IN THE DATABASE
+    return {"data":new_post}
 @app.get("/")  #decorator to tell fastapi that this is a get request
 # this is the root endpoint
 #if it was @app.get("/login") then I shoud go to this in the URL to use this endponint to use the functions
@@ -103,18 +129,19 @@ def find_index(id):
 @app.delete("/posts/delete/{id}",status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id:int):
     index=find_index(id)
-    if not index:
+    if index is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post not found with {id}")
     else:
-        my_posts.pop(id)
-        return HTTPException(status_code=status.HTTP_204_NO_CONTENT) #dont sent any detail or content in 204 delete
+        my_posts.pop(index)
+        return None               #dont sent any detail or content in 204 delete
     
 @app.put("/posts/update/{id}")
 async def update_post(id:int,post:UpdatePost):   #yesma pani SCHEMA validation huncha SAME POST garda jastai ho so COPY PASTE ARKO class BANAYE ni huncha
     index=find_index(id)
-    if not index:
+    if index is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post not found with {id}")
     
     post_dict=post.dict()  #dict ma convert gareko
-    my_posts.update(index,post_dict)  #update the post with the new data
+    my_posts[index].update(post_dict)  #update the post with the new data
     return {"data":post_dict}
+
