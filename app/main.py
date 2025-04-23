@@ -6,8 +6,25 @@ from random import randrange
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import time
+from . import models
+from .database import engine, SessionLocal,Base
+
+models.Base.metadata.create_all(bind=engine)  #creating the tables in the database using the models defined in the models.py file
 
 app=FastAPI()
+
+#depencency
+def get_db():   #CREATE SESSION WHENEVER WE GET A REQUEST TO ANY API ENDPOINT
+    #this function will be used to create a session for each request
+    #and close the session after the request is done
+    db=SessionLocal()  #creating the session for each request
+    try:
+        yield db  #yielding the session to be used in the request
+    finally:
+        db.close()  #closing the session after the request is done
+#yo chai database ma connect garne kaam garcha
+
+
 #array banako DB ma kaam garnu aagadi bujhna lai k raicha bhanera
 my_posts=[{"title":"title of post 1","content":"content of post 1","id":1},
           {"title":"title of post 2","content":"content of post 2","id":2},
@@ -60,6 +77,34 @@ async def create_posts(payload:Post):
     new_post=cursor.fetchone()   
     conn.commit()  #commit the changes to the database TO SAVE IN THE DATABASE
     return {"data":new_post}
+
+
+@app.get('/db_posts/{id}')
+async def get_one_post(id:int): #yo int bhaneko tyo url ma k type garcha user le validate gareko
+    cursor.execute("""SELECT * FROM posts WHERE id=%s""",(id,)) #comma halnu parcha kina bhane tuple ma convert huncha
+    #cursor.execute("""SELECT * FROM posts WHERE id=%s""",(id)) #yo chai tuple ma convert hunna
+    #cursor.execute("""SELECT * FROM posts WHERE id=%s""",(id,)) #yo chai tuple ma convert huncha
+    post=cursor.fetchone()
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post not found with {id}")
+    return {"data":post}
+
+@app.delete('/db_delete_posts/{id}',status_code=status.HTTP_204_NO_CONTENT)
+async def delete(id:int):
+    cursor.execute("""delete from posts where id=%s returning *""",(id,))  #returning * bhaneko delete bhayepachi kunai pani data return garne ho Returning * CHAI ALL COLUMNS
+    deleted_post=cursor.fetchone()
+    conn.commit()   #whnever we make any changes to the database we need to commit the changes
+    if not deleted_post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post not found with {id}")
+    return Response(status_code=status.HTTP_204_NO_CONTENT) #204 is no content, kunai pani kura delete bhayo bhane yo status code huncha
+#delete garda actual value return garaunu hunna just DELETED bhanne RESPONSE return garne
+
+#GET BAHEK ARU SABAI MA CONN.COMMI HUNAI PARCHA NATRA DATABASE MA DEKHIDAINA
+
+#POST, PUT, DELETE ma sabai ma commit huncha
+#GET ma hunna kina bhane GET ma data matra aaucha, data change nahune ho so commit nahune
+
+
 @app.get("/")  #decorator to tell fastapi that this is a get request
 # this is the root endpoint
 #if it was @app.get("/login") then I shoud go to this in the URL to use this endponint to use the functions
