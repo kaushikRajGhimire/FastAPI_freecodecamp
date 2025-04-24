@@ -7,6 +7,8 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import time
 from . import models
+from . import schemas
+from .schemas import Post
 from .database import engine,get_db
 from sqlalchemy.orm import Session
 
@@ -31,13 +33,6 @@ my_posts=[{"title":"title of post 1","content":"content of post 1","id":1},
 #     content:str
 
 
-class Post(BaseModel):  #extending the BaseModel class (inheritance)
-    title:str
-    #content:str
-    publised:bool=True  #default value is true
-     #default value is true
-    #rating:Optional[int]=None #nahale pani huncha but nahale chai None huncha, tara halepachi int type kai hunuparcha
-#katai pani jasma error aauna sakcha like database connect nahuna sakcha tesma sadai try: bhitra lekhne hai
 
 
 while True:      #yedi database connect first mai bhayena or pw haru galat thio bhane jaba samma thik hunna garirakhna paryo ni ta aagadi jana bhayena k program just error message falera !!! 
