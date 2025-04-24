@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Response, status, HTTPException
+from fastapi import FastAPI, Response, status, HTTPException,Depends
 from fastapi.params import Body
 from pydantic import BaseModel
 from typing import Optional
@@ -7,22 +7,14 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import time
 from . import models
-from .database import engine, SessionLocal,Base
+from .database import engine,get_db
+from sqlalchemy.orm import Session
+
+#k bujhne aahile lai bhane yo tala ko code nai ho josle table banaucha yedi chaina bhane otherwise yedi tei name ko table pahile nai cha bhane chuda ni chudaina SO CHANGES GSRDA TABLE DELETE GARNE KURO AAYENA DATA LOSS SO WE USE ALEMBIC FOR DATA MIGRATION
 
 models.Base.metadata.create_all(bind=engine)  #creating the tables in the database using the models defined in the models.py file
 
 app=FastAPI()
-
-#depencency
-def get_db():   #CREATE SESSION WHENEVER WE GET A REQUEST TO ANY API ENDPOINT
-    #this function will be used to create a session for each request
-    #and close the session after the request is done
-    db=SessionLocal()  #creating the session for each request
-    try:
-        yield db  #yielding the session to be used in the request
-    finally:
-        db.close()  #closing the session after the request is done
-#yo chai database ma connect garne kaam garcha
 
 
 #array banako DB ma kaam garnu aagadi bujhna lai k raicha bhanera
@@ -30,7 +22,7 @@ my_posts=[{"title":"title of post 1","content":"content of post 1","id":1},
           {"title":"title of post 2","content":"content of post 2","id":2},
           {"title":"title of post 3","content":"content of post 3","id":3}]
 #learning the schema validation
-
+ 
 #like for making a post you may want the title: str, content: str, boolean: post or save as draft or sth.
 #class banaune jasma saab DATA Validation Constraints huncha
 
@@ -41,7 +33,7 @@ my_posts=[{"title":"title of post 1","content":"content of post 1","id":1},
 
 class Post(BaseModel):  #extending the BaseModel class (inheritance)
     title:str
-    content:str
+    #content:str
     publised:bool=True  #default value is true
      #default value is true
     #rating:Optional[int]=None #nahale pani huncha but nahale chai None huncha, tara halepachi int type kai hunuparcha
@@ -62,7 +54,7 @@ while True:      #yedi database connect first mai bhayena or pw haru galat thio 
 #Remember class ma comma hunna JSON jasto ani retrieve garda ni : payload["title"] haina just payload.title
 class UpdatePost(BaseModel):
     title:str
-    content:str
+    #content:str
     publised:bool=True  #default value is true
     #rating:Optional[int]=None
 @app.get("/db_posts")
@@ -103,6 +95,55 @@ async def delete(id:int):
 
 #POST, PUT, DELETE ma sabai ma commit huncha
 #GET ma hunna kina bhane GET ma data matra aaucha, data change nahune ho so commit nahune
+
+@app.get("/sqlalchemy_test")
+async def test_sqlalchemy(db:Session=Depends(get_db)):   #sqlalchemy garera TEST GAREKO  SQLALCHEMY KO USE BHAKO CHA BHANE ALWAYS ALWAYS WRITE THAT ARGUMENT FUNCTION MA HAI 
+    posts=db.query(models.Post).all() #models.py bhitra bhako Post class ko use le tyo table bhitra CRUD garne ho  
+    return {"data":posts}  #returning the data in JSON format automatically by fastapi to the frontend as the answer to some request in some button
+
+
+@app.get("/sqlalchemy_test/{id}")
+async def test(id:int,db:Session=Depends(get_db)):
+    post=db.query(models.Post).filter(models.Post.id==id).first()
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post not found with {id}")
+    return {"data":post}  #returning the data in JSON format automatically by fastapi to the frontend as the answer to some request in some button
+
+@app.post("/sqlalchemy_test_post",status_code=status.HTTP_201_CREATED)
+async def test(payload:Post,db:Session=Depends(get_db)):
+    new_post=models.Post(**payload.dict())  #creating a new post object using the Post class defined in the models.py file
+    db.add(new_post)  #adding the new post object to the session
+    db.commit()#  #committing the changes to the database
+    db.refresh(new_post)   #refreshing the new post object to get the id and other details from the database
+    return {"data":new_post}
+
+@app.delete("/sqlalchemy_test_delete/{id}",status_code=status.HTTP_204_NO_CONTENT)
+async def test(id:int,db:Session=Depends(get_db)):
+    post=db.query(models.Post).filter(models.Post.id==id).first()
+    if post.first()==None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post not found with {id}")
+    db.delete(post)
+    db.commit()   #yo ta ekdam important so that we can reflect that on the database
+    #db.refresh(post)  #yo chai delete garda hunna
+    post.delete(synchronize_session=False)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@app.put("/sqlalchemy_test_update/{id}")
+async def test(id: int, payload: UpdatePost, db: Session = Depends(get_db)):
+    post_query = db.query(models.Post).filter(models.Post.id == id)
+    post = post_query.first()
+
+    if post is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Post not found with id {id}"
+        )
+
+    post_query.update(payload.dict(), synchronize_session=False)   #yo wala doubt padhne hai synchronization=False mostly used wala plus the payload wala kina use bhayo post kina bhayena
+    db.commit()
+
+    return {"data": post_query.first()}
+
 
 
 @app.get("/")  #decorator to tell fastapi that this is a get request

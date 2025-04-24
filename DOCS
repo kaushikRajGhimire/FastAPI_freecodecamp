@@ -4,3 +4,7 @@ LAYER OF ABSTRACTION BETN US AND DATABASE I.E. WE CAN PERFORM ALL THE DATABASE O
 MOST FAMOUS IS SQLALCHEMY... IT IS OWN LIBRARY... IT IS NOT A FASTAPI LIBRARY WE CAN USE IT IN ANY BACKEND
 
 particular db ko driver pani chaincha for sqlalchemy to communicate with the db
+
+DB connect garne sabai kura databse.py ma rakheko 
+model.py ma table str rakheko
+

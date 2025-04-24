@@ -13,3 +13,14 @@ Base=declarative_base()  #creating the base class that will be used to create th
 
 #JUST the postgresql URL will change others all copy paste in all projects
 
+
+#depencency
+def get_db():   #CREATE SESSION WHENEVER WE GET A REQUEST TO ANY API ENDPOINT
+    #this function will be used to create a session for each request
+    #and close the session after the request is done
+    db=SessionLocal()  #creating the session for each request
+    try:
+        yield db  #yielding the session to be used in the request
+    finally:
+        db.close()  #closing the session after the request is done
+#yo chai database ma connect garne kaam garcha
