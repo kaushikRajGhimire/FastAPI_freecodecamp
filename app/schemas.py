@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
 #pydantic is a data validation and settings management library for python
 
 # class Post(BaseModel):  #extending the BaseModel class (inheritance)
@@ -37,3 +38,18 @@ class PostBase(BaseModel):
 class PostCreate(PostBase):
     pass
 #class PostUpdate(PostBase):
+
+
+
+class PostResponse(BaseModel):
+    title:str
+    publised:bool
+    created_at:datetime
+    id:int   #whatever you want to show to the user as response put here
+    class Config:
+        orm_mode=True #kinaki dictionary ma huncha ani database ma chai object ma huncha ORM ko so pydantic lai yo chai dictinay ho object haina bhanna lai k decorator ma halda
+
+    #yesma pani inherit garna sakinthio 
+    #class PostResponse(PostBase):
+    #   id:int
+    #   created_at:datetime   ARU TA MATHI BATAI LII HALCHA TA 
