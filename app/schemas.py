@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel,EmailStr
 from typing import Optional
 from datetime import datetime
 #pydantic is a data validation and settings management library for python
@@ -37,7 +37,16 @@ class PostBase(BaseModel):
 
 class PostCreate(PostBase):
     pass
+
+class PostUpdate(PostBase):
+    pass
 #class PostUpdate(PostBase):
+#    title:str  #    publised:bool=True
+#    #content:str
+#    #rating:Optional[int]=None #nahale pani huncha but nahale chai None huncha, tara halepachi int type kai hunuparcha
+#    #rating:Optional[int]=None #nahale pani huncha but nahale chai None huncha, tara halepachi int type kai hunuparcha
+#    #yo chai update garna ko lagi ho
+#    #yedi update garna ko lagi chai title matra update garna parcha bhane ta yestai garne ho
 
 
 
@@ -48,8 +57,28 @@ class PostResponse(BaseModel):
     id:int   #whatever you want to show to the user as response put here
     class Config:
         orm_mode=True #kinaki dictionary ma huncha ani database ma chai object ma huncha ORM ko so pydantic lai yo chai dictinay ho object haina bhanna lai k decorator ma halda
-
+#yo class Config use nagare Error aaucha
     #yesma pani inherit garna sakinthio 
     #class PostResponse(PostBase):
     #   id:int
     #   created_at:datetime   ARU TA MATHI BATAI LII HALCHA TA 
+
+
+class UserCreate(BaseModel):
+    email:EmailStr          #valid email type ko string ho and not just a random string 
+    password:str
+    class Config:
+        orm_mode=True
+
+class UserResponse(BaseModel):
+    id:int
+    email:EmailStr          # malai yei response chiyo bhanera ho k
+    created_at:datetime
+    #password:str   #password hunu hudaina ni ta response 
+
+    class Config:                     #yo kina gareko bhanda ORM ma ta object aaucha ni response but teslai pydantic model le bujhne dictionary ma lagna paryo so class Config
+        orm_mode=True                 
+
+
+
+
