@@ -9,7 +9,7 @@ from ..database import get_db
 from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from fastapi import APIRouter
-
+from .. import oauth
 
 router=APIRouter(tags=["SQLAlchemy Test"])  #prefix le chai sabai endpoint ma /users halne ho ani tags le chai documentation ma k k huncha bhanera bujhna sajilo huncha
 
@@ -20,14 +20,15 @@ async def test_sqlalchemy(db:Session=Depends(get_db),response_model=List[schemas
 
 
 @router.get("/sqlalchemy_test/{id}",response_model=schemas.PostResponse)  #response_model le chai k return garne ho bhanera bujhna sakinchha
-async def test(id:int,db:Session=Depends(get_db)):     #yesma ta baas euta post chiyeko cha so single lai List chaidaina natra 2 or more or all post linu pareko bhaye we would need List[] in the respomse_model
+async def test(id:int,db:Session=Depends(get_db),user_id:int=Depends(oauth.get_current_user)):  
+    #print(current_user.email)   #yesma ta baas euta post chiyeko cha so single lai List chaidaina natra 2 or more or all post linu pareko bhaye we would need List[] in the respomse_model
     post=db.query(models.Post).filter(models.Post.id==id).first()
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post not found with {id}")
     return post  #returning the data in JSON format automatically by fastapi to the frontend as the answer to some request in some button
 
 @router.post("/sqlalchemy_test_post",status_code=status.HTTP_201_CREATED,response_model=schemas.PostResponse)
-async def test(payload:schemas.PostBase,db:Session=Depends(get_db)):
+async def test(payload:schemas.PostBase,db:Session=Depends(get_db),user_id:int=Depends(oauth.get_current_user)):
     new_post=models.Post(**payload.dict())  #creating a new post object using the Post class defined in the models.py file
     db.add(new_post)  #adding the new post object to the session
     db.commit()#  #committing the changes to the database
@@ -35,7 +36,7 @@ async def test(payload:schemas.PostBase,db:Session=Depends(get_db)):
     return new_post
 
 @router.delete("/sqlalchemy_test_delete/{id}",status_code=status.HTTP_204_NO_CONTENT)
-async def test(id:int,db:Session=Depends(get_db)):
+async def test(id:int,db:Session=Depends(get_db),user_id:int=Depends(oauth.get_current_user)):
     post=db.query(models.Post).filter(models.Post.id==id).first()
     if post.first()==None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post not found with {id}")
@@ -46,7 +47,7 @@ async def test(id:int,db:Session=Depends(get_db)):
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 @router.put("/sqlalchemy_test_update/{id}",response_model=schemas.PostResponse)
-async def test(id: int, payload: schemas.PostUpdate, db: Session = Depends(get_db)):
+async def test(id: int, payload: schemas.PostUpdate, db: Session = Depends(get_db),user_id:int=Depends(oauth.get_current_user)):
     post_query = db.query(models.Post).filter(models.Post.id == id)
     post = post_query.first()   #post is an object got from sqlalchemy query response
     #post_query is a query object so we can use it to update the post

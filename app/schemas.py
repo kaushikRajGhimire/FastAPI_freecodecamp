@@ -84,4 +84,20 @@ class UserResponse(BaseModel):
 class UserLogin(BaseModel):
     email:EmailStr
     password:str
-    
+
+#verifying the token that is in the request header from the frontend
+class Token(BaseModel):
+    access_token:str
+    token_type:str
+
+
+#token ma payload ma kun data pathako chas? id cha aahile ko lagi tei verify garna lai
+class TokenData(BaseModel):
+    id:int   #yo optional string haina ni ta yo ta int ho jun input dincham postman ma /id tei error thio, vs code le dine docs le idea diyo
+    #email:Optional[str]=None
+    #role:Optional[str]=None
+    #scope:Optional[str]=None
+    #user_id:Optional[int]=None
+    #user_role:Optional[str]=None
+    #user_email:Optional[str]=None
+
