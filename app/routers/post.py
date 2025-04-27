@@ -32,7 +32,7 @@ async def test(payload:schemas.PostBase,db:Session=Depends(get_db)):
     db.add(new_post)  #adding the new post object to the session
     db.commit()#  #committing the changes to the database
     db.refresh(new_post)   #refreshing the new post object to get the id and other details from the database
-    return {"data":new_post}
+    return new_post
 
 @router.delete("/sqlalchemy_test_delete/{id}",status_code=status.HTTP_204_NO_CONTENT)
 async def test(id:int,db:Session=Depends(get_db)):
@@ -61,7 +61,7 @@ async def test(id: int, payload: schemas.PostUpdate, db: Session = Depends(get_d
     db.commit()         #yo k gareko thaha bhayo kinaki data ta json dictionary ma cha ni ta payload ma UpdatePost bata validate gareko but database ma SQLAlchemy use garera update garda ta dictionary ma hunu parcha ni ta thats why post_query.update(payload.dict()ma convert garera haleko)
 #natra """post.title=payload.title,
 #    post.publised=payload.publised""" garera one by one update garna ni milthio but purai lai update garda or dherai fields lai update garda yestai garne ho 
-    return {"data": post_query.first()}
+    return post_query.first()
 
 
 """🎯 Here's the Critical Line You Asked About:
@@ -81,3 +81,4 @@ payload.dict() gives you a Python dictionary like:
 This is perfect for SQLAlchemy’s update() method, which takes a dictionary of values to update.
 
 ✅ You can't pass post here — that's an actual ORM object, not data."""
+
